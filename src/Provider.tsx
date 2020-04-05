@@ -96,7 +96,7 @@ export default function Provider({
   size = 1000,
 }: ProviderProps): JSX.Element {
   const { invalidate } = useThree()
-  const [worker] = useState<Worker>(() => new CannonWorker() as Worker)
+  const [worker] = useState<any>(() => new CannonWorker())
   const [refs] = useState<Refs>({})
   const [buffers] = useState<Buffers>(() => ({
     positions: new Float32Array(size * 3),
@@ -122,10 +122,10 @@ export default function Provider({
     })
 
     function loop() {
-      worker.postMessage({ op: 'step', ...buffers }, [buffers.positions.buffer, buffers.quaternions.buffer])
+      worker.postMessage({ op: 'step', ...buffers })
     }
 
-    worker.onmessage = (e: IncomingWorkerMessage) => {
+    worker.addListener((e: IncomingWorkerMessage) => {
       switch (e.data.op) {
         case 'frame':
           buffers.positions = e.data.positions
@@ -158,7 +158,7 @@ export default function Provider({
           }
           break
       }
-    }
+    })
     loop()
     return () => worker.terminate()
   }, [])

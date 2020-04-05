@@ -24,7 +24,6 @@ export default [
     output: { dir: 'dist', format: 'esm' },
     external,
     plugins: [
-      worker({ pattern: /.*\/worker$/ }),
       resolve({ extensions }),
       babel(getBabelOptions({ useESModules: true }, '>1%, not dead, not ie 11, not op_mini all')),
       terser(),
@@ -35,7 +34,6 @@ export default [
     output: { dir: 'dist/debug', format: 'esm' },
     external,
     plugins: [
-      worker({ pattern: /.*\/worker$/ }),
       resolve({ extensions }),
       babel(getBabelOptions({ useESModules: true }, '>1%, not dead, not ie 11, not op_mini all')),
     ],
