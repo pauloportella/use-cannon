@@ -4,6 +4,8 @@ import * as THREE from 'three'
 import React, { useLayoutEffect, useContext, useRef, useMemo, useEffect, useState } from 'react'
 import { useFrame } from 'react-three-fiber'
 import { context } from './index'
+import { Box3, Box3Helper, Color } from 'three'
+import type { Object3D } from 'three'
 
 export type AtomicProps = {
   mass?: number
@@ -150,6 +152,23 @@ function apply(object: THREE.Object3D, index: number, buffers: Buffers) {
     object.position.fromArray(buffers.positions, index * 3)
     object.quaternion.fromArray(buffers.quaternions, index * 4)
   }
+}
+
+function useBoundingBoxes(ref: any) {
+  useEffect(() => {
+    const object = ref.current
+    if (object) {
+      const box = new Box3()
+      box.setFromObject(object)
+      box.min.copy(object.worldToLocal(box.min))
+      box.max.copy(object.worldToLocal(box.max))
+      const helper = new Box3Helper(box, new Color('0xffffff'))
+      helper.renderOrder = 10000000
+      ;(helper.material as any).depthTest = false
+      object.add(helper)
+      return () => void object.remove(helper)
+    }
+  }, [])
 }
 
 let subscriptionGuid = 0
@@ -299,10 +318,14 @@ export function usePlane(fn: PlaneFn, fwdRef?: React.MutableRefObject<THREE.Obje
   return useBody('Plane', fn, () => [], fwdRef)
 }
 export function useBox(fn: BoxFn, fwdRef?: React.MutableRefObject<THREE.Object3D>) {
-  return useBody('Box', fn, (args) => args || [0.5, 0.5, 0.5], fwdRef)
+  const args = useBody('Box', fn, (args) => args || [0.5, 0.5, 0.5], fwdRef)
+  useBoundingBoxes(args[0])
+  return args
 }
 export function useCylinder(fn: CylinderFn, fwdRef?: React.MutableRefObject<THREE.Object3D>) {
-  return useBody('Cylinder', fn, (args) => args, fwdRef)
+  const args = useBody('Cylinder', fn, (args) => args, fwdRef)
+  useBoundingBoxes(args[0])
+  return args
 }
 export function useHeightfield(fn: HeightfieldFn, fwdRef?: React.MutableRefObject<THREE.Object3D>) {
   return useBody('Heightfield', fn, (args) => args, fwdRef)
@@ -311,7 +334,9 @@ export function useParticle(fn: ParticleFn, fwdRef?: React.MutableRefObject<THRE
   return useBody('Particle', fn, () => [], fwdRef)
 }
 export function useSphere(fn: SphereFn, fwdRef?: React.MutableRefObject<THREE.Object3D>) {
-  return useBody('Sphere', fn, (radius) => [radius ?? 1], fwdRef)
+  const args = useBody('Sphere', fn, (radius) => [radius ?? 1], fwdRef)
+  useBoundingBoxes(args[0])
+  return args
 }
 export function useTrimesh(fn: TrimeshFn, fwdRef?: React.MutableRefObject<THREE.Object3D>) {
   return useBody(
@@ -329,7 +354,7 @@ export function useTrimesh(fn: TrimeshFn, fwdRef?: React.MutableRefObject<THREE.
   )
 }
 export function useConvexPolyhedron(fn: ConvexPolyhedronFn, fwdRef?: React.MutableRefObject<THREE.Object3D>) {
-  return useBody(
+  const args = useBody(
     'ConvexPolyhedron',
     fn,
     (args) => {
@@ -344,6 +369,8 @@ export function useConvexPolyhedron(fn: ConvexPolyhedronFn, fwdRef?: React.Mutab
     },
     fwdRef
   )
+  useBoundingBoxes(args[0])
+  return args
 }
 export function useCompoundBody(fn: CompoundBodyFn, fwdRef?: React.MutableRefObject<THREE.Object3D>) {
   return useBody('Compound', fn, (args) => args || [], fwdRef)
